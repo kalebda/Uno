@@ -1,0 +1,18 @@
+# Python
+*.pyc
+__pycache__/
+*.egg*
+
+# Environment
+.env
+env_linux
+.DS_Store
+
+# IDE
+/.idea
+/docs/_build/
+
+# Project specific
+data/
+tasks_logs/
+tmp/
