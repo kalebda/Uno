@@ -4,7 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-import app.models
 from app.core.config import settings
 from app.db.base_class import Base
 
@@ -108,3 +107,6 @@ AsyncSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
 )
+
+# Import all models to ensure they are registered with SQLAlchemy
+import app.models  # noqa

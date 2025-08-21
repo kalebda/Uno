@@ -38,19 +38,14 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
-        "http://localhost:3001", 
-        "http://localhost:8080",
-        "http://localhost:4200",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:8080",
-        "http://127.0.0.1:4200",
         "*"
     ]
 
     # User Management
-    FIRST_SUPERUSER: str = "admin@example.com"
-    FIRST_SUPERUSER_PASSWORD: str = "admin123"
+    DEFAULT_USER_EMAIL: str = "default@example.com"
+    DEFAULT_USER_NAME: str = "Default User"
+    DEFAULT_USER_ACTIVE: bool = True
+    DEFAULT_USER_SUPERUSER: bool = False
 
     # Vector Database
     VECTOR_DB_PATH: str = "./data/vector_db"

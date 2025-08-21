@@ -32,6 +32,15 @@ check_vector_db() {
 echo "Waiting for database to be ready..."
 sleep 5
 
+# Step 0: Run database migrations and initialize database
+echo "Running database migrations..."
+alembic upgrade head
+echo "Migrations completed!"
+
+echo "Initializing database..."
+python -c "from app.db.init_db import init_default_user; init_default_user()"
+echo "Database initialization completed!"
+
 # Step 1: Run scraping if needed
 if ! check_data_exists; then
     echo "Running Czech scholarship scraper..."

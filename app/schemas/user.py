@@ -14,12 +14,10 @@ class UserBase(BaseModel):
     is_active: Optional[bool] = True
     is_superuser: bool = False
     full_name: Optional[str] = None
-    user_type: UserType = UserType.USER
 
 
 class UserCreate(UserBase):
     email: EmailStr
-    password: str
 
 
 class UserUpdate(UserBase):

@@ -14,19 +14,56 @@ async def chat_with_assistant(
     request: ChatRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Chat with the AI assistant about study opportunities"""
+    """Chat with the AI assistant about study opportunities for a specific country"""
+    from app.crud.chat_message import chat_message_crud
+    from app.crud.user import user_crud
     from app.services.rag_service import RAGService
 
     try:
+        # Get or create default user
+        user = await user_crud.get_or_create_default_user(db)
+
+        # Save user message
+        await chat_message_crud.create(
+            db=db,
+            user_id=user.id,
+            session_id=request.session_id,
+            role="user",
+            content=request.message
+        )
+
+        # Get chat history for context
+        chat_history = await chat_message_crud.get_session_messages(
+            db=db,
+            user_id=user.id,
+            session_id=request.session_id,
+            limit=5
+        )
+
         rag_service = RAGService()
         
-        # Generate response using RAG
-        result = rag_service.generate_response(request.message, request.user_background)
+        # Generate response using RAG with country context and chat history
+        result = rag_service.generate_response(
+            request.message,
+            request.user_background,
+            chat_history
+        )
+
+        # Save assistant response
+        await chat_message_crud.create(
+            db=db,
+            user_id=user.id,
+            session_id=request.session_id,
+            role="assistant",
+            content=result.get("response", "Sorry, I couldn't process your request.")
+        )
 
         return ChatResponse(
             response=result.get("response", "Sorry, I couldn't process your request."),
             query=result.get("query", request.message),
+            country=request.country,
             user_background=result.get("user_background", request.user_background),
+            session_id=request.session_id,
             sources=result.get("sources", []),
             confidence=result.get("confidence", 0.0)
         )
@@ -34,7 +71,9 @@ async def chat_with_assistant(
         return ChatResponse(
             response=f"Error: {str(e)}",
             query=request.message,
+            country=request.country,
             user_background=request.user_background,
+            session_id=request.session_id,
             error=True
         )
 

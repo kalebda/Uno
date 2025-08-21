@@ -8,6 +8,7 @@ to provide intelligent, context-aware responses about study opportunities.
 import logging
 from typing import Any, Dict, List, Optional
 
+from app.core.prompt_builder import prompt_builder
 from app.services.groq_service import GroqService
 from app.services.vector_store import VectorStoreService
 
@@ -21,7 +22,7 @@ class RAGService:
         self.groq_service = GroqService()
         self.vector_service = VectorStoreService()
 
-    def generate_response(self, user_query: str, user_background: Dict[str, Any] = None) -> Dict[str, Any]:
+    def generate_response(self, user_query: str, user_background: Dict[str, Any] = None, chat_history: List = None) -> Dict[str, Any]:
         """Generate a comprehensive response using RAG."""
         try:
             # Step 1: Retrieve relevant documents
@@ -30,8 +31,8 @@ class RAGService:
             # Step 2: Create context from retrieved documents
             context = self._create_context_from_documents(relevant_docs)
 
-            # Step 3: Generate response using LLM
-            response = self._generate_llm_response(user_query, context, user_background)
+            # Step 3: Generate response using LLM with chat history
+            response = self._generate_llm_response(user_query, context, user_background, chat_history)
 
             return {
                 "response": response,
@@ -87,33 +88,16 @@ class RAGService:
 
         return "\n".join(context_parts)
 
-    def _generate_llm_response(self, query: str, context: str, user_background: Dict[str, Any] = None) -> str:
-        """Generate response using Groq LLM with context."""
+    def _generate_llm_response(self, query: str, context: str, user_background: Dict[str, Any] = None, chat_history: List = None) -> str:
+        """Generate response using Groq LLM with context and chat history."""
 
-        # Create system prompt
-        system_prompt = """You are an expert study abroad advisor helping Ethiopian students find international study opportunities. 
-
-Your role is to:
-1. Provide accurate, helpful information about scholarships and study opportunities
-2. Consider the user's background when making recommendations
-3. Give specific, actionable advice
-4. Be encouraging and supportive
-5. Use the provided context to give informed responses
-
-Always base your responses on the provided context and be honest about what you know and don't know."""
-
-        # Create user message with context
-        user_message = f"""
-User Query: {query}
-
-Context Information:
-{context}
-
-User Background: {user_background if user_background else 'Not provided'}
-
-Please provide a comprehensive, helpful response based on the context information and user background. 
-If the context doesn't contain enough information to answer the query, please say so and suggest what additional information might be needed.
-"""
+        # Build prompts using prompt builder
+        system_prompt, user_message = prompt_builder.build_chat_prompt(
+            query=query,
+            context=context,
+            user_background=user_background,
+            chat_history=chat_history
+        )
 
         return self.groq_service.get_response(user_message, system_prompt)
 
@@ -173,26 +157,11 @@ If the context doesn't contain enough information to answer the query, please sa
 
             context = self._create_context_from_documents(relevant_docs)
 
-            # Create analysis prompt
-            system_prompt = """You are a scholarship eligibility expert. Analyze if the user's background matches the scholarship requirements.
-
-Provide a detailed analysis including:
-1. Eligibility assessment (Yes/No/Maybe)
-2. Specific requirements met
-3. Requirements not met
-4. Recommendations for improvement
-5. Alternative suggestions if not eligible
-
-Be specific and actionable in your advice."""
-
-            user_message = f"""
-User Background: {user_background}
-
-Scholarship Information:
-{context}
-
-Please provide a comprehensive eligibility analysis.
-"""
+            # Build prompts using prompt builder
+            system_prompt, user_message = prompt_builder.build_scholarship_analysis_prompt(
+                user_background=user_background,
+                context=context
+            )
 
             analysis = self.groq_service.get_response(user_message, system_prompt)
 
@@ -222,19 +191,12 @@ Please provide a comprehensive eligibility analysis.
 
             context = self._create_context_from_documents(relevant_docs)
 
-            system_prompt = f"""You are a country information expert. Provide comprehensive information about {country_name}.
-
-Focus on the specific type of information requested: {info_type}.
-Provide accurate, helpful information based on the context provided."""
-
-            user_message = f"""
-Request: Information about {country_name} - {info_type}
-
-Context:
-{context}
-
-Please provide comprehensive information about {country_name} focusing on {info_type}.
-"""
+            # Build prompts using prompt builder
+            system_prompt, user_message = prompt_builder.build_country_info_prompt(
+                country_name=country_name,
+                info_type=info_type,
+                context=context
+            )
 
             response = self.groq_service.get_response(user_message, system_prompt)
 
